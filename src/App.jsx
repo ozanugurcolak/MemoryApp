@@ -23,6 +23,16 @@ function App() {
     return savedBestTime ? parseInt(savedBestTime) : null
   })
   const [timerActive, setTimerActive] = useState(false)
+  const [moves, setMoves] = useState(0)
+
+  const calculateScore = (time, moves) => {
+    const maxScore = 100
+    const timePenalty = time * 0.5  // Geçen her saniye için 0.5 puan kaybet
+    const movePenalty = moves * 1    // Her hamle için 1 puan kaybet
+  
+    let score = maxScore - timePenalty - movePenalty
+    return score > 0 ? Math.round(score) : 0 
+  }
 
   const prepareCards = () => {
     const sortedCards = [...defaultCards, ...defaultCards].sort(() => 0.5 - Math.random())
@@ -34,6 +44,7 @@ function App() {
 
   const startGame = () => {
     setTime(0)
+    setMoves(0)
     setTimerActive(true)
     prepareCards() // Oyun başlatıldığında kartları karıştır
   }
@@ -41,6 +52,9 @@ function App() {
   const handleSelected = (card) => {
     if (disabled) return true
     selectedOne ? setSelectedTwo(card) : setSelectedOne(card)
+    if (selectedOne) {
+      setMoves(prevMoves => prevMoves + 1)
+    }
   }
 
   useEffect(() => {
@@ -82,12 +96,21 @@ function App() {
   useEffect(() => {
     if (cards.length && cards.every(card => card.matched)) {
       setTimerActive(false)
+      const finalScore = calculateScore(time, moves)
+
       if (!bestTime || time < bestTime) {
         setBestTime(time)
         localStorage.setItem('bestTime', time)
       }
+
+      const highScore = localStorage.getItem('highScore')
+      if (!highScore || finalScore > highScore) {
+        localStorage.setItem('highScore', finalScore)
+      }
+
+      alert(`Oyun bitti! Skorunuz: ${finalScore}`)
     }
-  }, [cards, time, bestTime])
+  }, [cards, time, moves])
 
   const resetState = () => {
     setSelectedOne(null)
@@ -105,7 +128,10 @@ function App() {
       </button>
       <div className="text-center mt-4">
         <p>Süre: {time} saniye</p>
+        <p>Hamle: {moves}</p>
         {bestTime !== null && <p>En İyi Zaman: {bestTime} saniye</p>}
+        <p>Skor: {calculateScore(time, moves)}</p>
+        <p>En Yüksek Skor: {localStorage.getItem('highScore') || 0}</p>
       </div>
       <div className="grid grid-cols-4 gap-2 mt-10">
         {cards.map((card, ind) => (
